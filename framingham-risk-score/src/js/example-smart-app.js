@@ -15,9 +15,18 @@
                     type: 'Observation',
                     query: {
                       code: {
-                        $or: ['http://loinc.org|8302-2', 'http://loinc.org|8462-4',
-                              'http://loinc.org|8480-6', 'http://loinc.org|2085-9',
-                              'http://loinc.org|2089-1', 'http://loinc.org|55284-4']
+                            $or: ['http://loinc.org|8462-4', // DBP
+                                  'http://loinc.org|8480-6', // SBP
+                                  'http://loinc.org|2085-9', // HDL
+                                  'http://loinc.org|2089-1', // LDL
+                                  'http://loinc.org|55284-4', // Blood pressure systolic & diastolic
+                                  'http://loinc.org|30525-0', // Age
+                                  'http://loinc.org|21611-9', // Age (estimated)
+                                  'http://loinc.org|21612-7', // Age (reported)
+                              'http://loinc.org|29553-5', // Age (calculated)
+
+                                ] 
+                          
                       }
                     }
                   });
@@ -34,9 +43,9 @@
           if (typeof patient.name[0] !== 'undefined') {
             fname = patient.name[0].given.join(' ');
             lname = patient.name[0].family.join(' ');
-          }
+            }
 
-          var height = byCodes('8302-2');
+         
           var systolicbp = getBloodPressureValue(byCodes('55284-4'),'8480-6');
           var diastolicbp = getBloodPressureValue(byCodes('55284-4'),'8462-4');
           var hdl = byCodes('2085-9');
@@ -47,8 +56,8 @@
           p.gender = gender;
           p.fname = fname;
           p.lname = lname;
-          p.height = getQuantityValueAndUnit(height[0]);
-
+          p.age = getAge(p.birthdate);
+          
           if (typeof systolicbp != 'undefined')  {
             p.systolicbp = systolicbp;
           }
@@ -77,8 +86,8 @@
       fname: {value: ''},
       lname: {value: ''},
       gender: {value: ''},
-      birthdate: {value: ''},
-      height: {value: ''},
+      birthdate: {value: '' },
+      age: {value: ''},
       systolicbp: {value: ''},
       diastolicbp: {value: ''},
       ldl: {value: ''},
@@ -112,7 +121,18 @@
     } else {
       return undefined;
     }
-  }
+    }
+
+    function getAge(dateString) { // birthday is a string
+        var today = new Date();
+        var birthDate = new Date(dateString);
+        var age = today.getFullYear() - birthDate.getFullYear();
+        var m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
+    }
 
   window.drawVisualization = function(p) {
     $('#holder').show();
@@ -121,7 +141,7 @@
     $('#lname').html(p.lname);
     $('#gender').html(p.gender);
     $('#birthdate').html(p.birthdate);
-    $('#height').html(p.height);
+    $('#age').html(p.age);
     $('#systolicbp').html(p.systolicbp);
     $('#diastolicbp').html(p.diastolicbp);
     $('#ldl').html(p.ldl);
