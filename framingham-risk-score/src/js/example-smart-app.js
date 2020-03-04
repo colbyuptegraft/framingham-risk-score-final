@@ -19,11 +19,13 @@
                                   'http://loinc.org|8480-6', // SBP
                                   'http://loinc.org|2085-9', // HDL
                                   'http://loinc.org|2089-1', // LDL
+                                  'http://loinc.org|2093-3', // Total Cholesterol
                                   'http://loinc.org|55284-4', // Blood pressure systolic & diastolic
                                   'http://loinc.org|30525-0', // Age
                                   'http://loinc.org|21611-9', // Age (estimated)
                                   'http://loinc.org|21612-7', // Age (reported)
-                              'http://loinc.org|29553-5', // Age (calculated)
+                                  'http://loinc.org|29553-5', // Age (calculated)
+                                  'http://loinc.org|72166-2' // Tobacco smoking status
 
                                 ] 
                           
@@ -45,11 +47,12 @@
             lname = patient.name[0].family.join(' ');
             }
 
-         
+          var smk = byCodes('72166-2');
           var systolicbp = getBloodPressureValue(byCodes('55284-4'),'8480-6');
           var diastolicbp = getBloodPressureValue(byCodes('55284-4'),'8462-4');
           var hdl = byCodes('2085-9');
           var ldl = byCodes('2089-1');
+          var tcl = byCodes('2093-3');
 
           var p = defaultPatient();
           p.birthdate = patient.birthDate;
@@ -57,6 +60,10 @@
           p.fname = fname;
           p.lname = lname;
           p.age = getAge(p.birthdate);
+
+            if (typeof smk != 'undefined') {
+                p.smk = getSmokingStatus(smk[0]);             
+            }
           
           if (typeof systolicbp != 'undefined')  {
             p.systolicbp = systolicbp;
@@ -68,6 +75,7 @@
 
           p.hdl = getQuantityValueAndUnit(hdl[0]);
           p.ldl = getQuantityValueAndUnit(ldl[0]);
+          p.tcl = getQuantityValueAndUnit(tcl[0]);
 
           ret.resolve(p);
         });
@@ -91,7 +99,9 @@
       systolicbp: {value: ''},
       diastolicbp: {value: ''},
       ldl: {value: ''},
-      hdl: {value: ''},
+      hdl: { value: '' },
+      tcl: { value: '' },
+      smk: {value: ''},
     };
   }
 
@@ -108,7 +118,6 @@
         formattedBPObservations.push(observation);
       }
     });
-
     return getQuantityValueAndUnit(formattedBPObservations[0]);
   }
 
@@ -134,6 +143,16 @@
         return age;
     }
 
+    function getSmokingStatus(ob) {
+        if (typeof ob != 'undefined' &&
+            typeof ob.valueCodeableConcept != 'undefined' &&
+            typeof ob.valueCodeableConcept.coding != 'undefined') {
+                return ob.valueCodeableConcept.coding.text;
+        } else {
+            return 'fail';
+        }
+    }
+
   window.drawVisualization = function(p) {
     $('#holder').show();
     $('#loading').hide();
@@ -145,7 +164,9 @@
     $('#systolicbp').html(p.systolicbp);
     $('#diastolicbp').html(p.diastolicbp);
     $('#ldl').html(p.ldl);
-    $('#hdl').html(p.hdl);
+      $('#hdl').html(p.hdl);
+      $('#tcl').html(p.tcl);
+    $('#smk').html(p.smk);
   };
 
 })(window);
