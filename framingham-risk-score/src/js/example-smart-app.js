@@ -5,7 +5,30 @@
     function onError() {
       console.log('Loading error', arguments);
       ret.reject();
-    }
+      }
+
+    // Coefficients for Men
+      var age_men = 52.00961;
+      var tcl_men = 20.014077;
+      var hdl_men = -0.905964;
+      var sbp_men = 1.305784;
+      var bpTx_men = 0.241549;
+      var smk_men = 12.096316;
+      var ageTcl_men = -4.605038;
+      var ageSmk_men = -2.84367;
+      var age2_men = -2.93323;
+      var con_men = 172.300168;
+
+    // Coefficients for Women
+      var age_women = 31.764001;
+      var tcl_women = 22.465206;
+      var hdl_women = -1.187731;
+      var sbp_women = 2.552905;
+      var bpTx_women = 0.420251;
+      var smk_women = 13.07543;
+      var ageTcl_women = -5.060998;
+      var ageSmk_women = -2.996945;
+      var con_women = 146.5933061;
 
     function onReady(smart)  {
       if (smart.hasOwnProperty('patient')) {
@@ -25,8 +48,14 @@
                                   'http://loinc.org|21611-9', // Age (estimated)
                                   'http://loinc.org|21612-7', // Age (reported)
                                   'http://loinc.org|29553-5', // Age (calculated)
-                                  'http://loinc.org|72166-2' // Tobacco smoking status
-
+                                  'http://loinc.org|72166-2', // Tobacco smoking status in social history
+                                  'http://loinc.org|81229-7', // Tobacco smoking status - Tobacco Smoker
+                                  'http://loinc.org|11366-2', // Tobacco use status
+                                  'http://loinc.org|11367-0', // Tobacco use status
+                                  'http://loinc.org|39240-7', // Tobacco use status
+                                  'http://loinc.org|2571-8', // Triglycerides (mass/volume in Serum or plasma)
+                                  'http://loinc.org|3043-7', // Triglycerides (mass/volume in Blood)
+                                  'http://loinc.org|3049-4', // Triglycerides (mass/volume in serum or plasma) - Deprecated
                                 ] 
                           
                       }
@@ -47,7 +76,8 @@
             lname = patient.name[0].family.join(' ');
             }
 
-          var smk = byCodes('72166-2');
+          var tgl = byCodes('2571-8', '3043-7', '3049-4');
+          var smk = byCodes('72166-2', '81229-7', '11366-2', '11367-0', '39240-7');
           var systolicbp = getBloodPressureValue(byCodes('55284-4'),'8480-6');
           var diastolicbp = getBloodPressureValue(byCodes('55284-4'),'8462-4');
           var hdl = byCodes('2085-9');
@@ -62,7 +92,9 @@
           p.age = getAge(p.birthdate);
 
             if (typeof smk != 'undefined') {
-                p.smk = getSmokingStatus(smk[0]);             
+                p.smk = getSmokingStatus(smk[0]);
+            } else {
+                p.smk = 'smk undefined';
             }
           
           if (typeof systolicbp != 'undefined')  {
@@ -76,6 +108,7 @@
           p.hdl = getQuantityValueAndUnit(hdl[0]);
           p.ldl = getQuantityValueAndUnit(ldl[0]);
           p.tcl = getQuantityValueAndUnit(tcl[0]);
+          p.tgl = getQuantityValueAndUnit(tgl[0]);
 
           ret.resolve(p);
         });
@@ -99,9 +132,10 @@
       systolicbp: {value: ''},
       diastolicbp: {value: ''},
       ldl: {value: ''},
-      hdl: { value: '' },
-      tcl: { value: '' },
-      smk: {value: ''},
+      hdl: {value: '' },
+      tcl: {value: '' },
+      smk: {value: '' },
+      tgl: {value: '' },
     };
   }
 
@@ -146,10 +180,11 @@
     function getSmokingStatus(ob) {
         if (typeof ob != 'undefined' &&
             typeof ob.valueCodeableConcept != 'undefined' &&
-            typeof ob.valueCodeableConcept.coding != 'undefined') {
-                return ob.valueCodeableConcept.coding.text;
+            typeof ob.valueCodeableConcept.coding != 'undefined' &&
+            typeof ob.valueCodeableConcept.coding[0].display != 'undefined') {
+                return ob.valueCodeableConcept.coding[0].display;
         } else {
-            return 'fail';
+            return undefined;
         }
     }
 
@@ -164,9 +199,10 @@
     $('#systolicbp').html(p.systolicbp);
     $('#diastolicbp').html(p.diastolicbp);
     $('#ldl').html(p.ldl);
-      $('#hdl').html(p.hdl);
-      $('#tcl').html(p.tcl);
+    $('#hdl').html(p.hdl);
+    $('#tcl').html(p.tcl);
     $('#smk').html(p.smk);
+    $('#tgl').html(p.tgl);
   };
 
 })(window);
