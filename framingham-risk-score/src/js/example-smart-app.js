@@ -38,7 +38,8 @@
                     type: 'Observation',
                     query: {
                       code: {
-                            $or: ['http://loinc.org|8462-4', // DBP
+                            $or: [
+                                  'http://loinc.org|8462-4', // DBP
                                   'http://loinc.org|8480-6', // SBP
                                   'http://loinc.org|2085-9', // HDL
                                   'http://loinc.org|2089-1', // LDL
@@ -60,12 +61,42 @@
                           
                       }
                     }
-                  });
+        });
+                     
+          var meds = smart.patient.api.fetchAll({
+              type: 'MedicationDispense',
+              query: {
+                  status: "completed"
+                  //code: 'http://www.nlm.nih.gov/research/umls/rxnorm|153666' // "irbesartan 150 MG Oral Tablet [Avapro]"
+              }
+              
+              
+          });
+                  /*
+          $.when(pt, meds).done(function (meds) {
+              var byCodes = smart.byCodes(meds, 'code');
 
-        $.when(pt, obv).fail(onError);
+              var medications = byCodes('153666');
 
-        $.when(pt, obv).done(function(patient, obv) {
-          var byCodes = smart.byCodes(obv, 'code');
+            
+              if (typeof medications != 'undefined') {
+                  p.meds = JSON.stringify(medications);
+              } else {
+                  p.meds = 'medications undefined';
+              }
+              
+               
+
+          });
+
+*/
+
+        $.when(pt, obv, meds).fail(onError);
+
+
+        $.when(pt, obv, meds).done(function(patient, obv, meds) {
+            var byObvCodes = smart.byCodes(obv, 'code');
+            var byMedCodes = smart.byCodes(meds, 'code');
           var gender = patient.gender;
 
           var fname = '';
@@ -76,20 +107,43 @@
             lname = patient.name[0].family.join(' ');
             }
 
-          var tgl = byCodes('2571-8', '3043-7', '3049-4');
-          var smk = byCodes('72166-2', '81229-7', '11366-2', '11367-0', '39240-7');
-          var systolicbp = getBloodPressureValue(byCodes('55284-4'),'8480-6');
-          var diastolicbp = getBloodPressureValue(byCodes('55284-4'),'8462-4');
-          var hdl = byCodes('2085-9');
-          var ldl = byCodes('2089-1');
-          var tcl = byCodes('2093-3');
+            var tgl = byObvCodes('2571-8', '3043-7', '3049-4');
+            var smk = byObvCodes('72166-2', '81229-7', '11366-2', '11367-0', '39240-7');
+            var systolicbp = getBloodPressureValue(byObvCodes('55284-4'),'8480-6');
+            var diastolicbp = getBloodPressureValue(byObvCodes('55284-4'),'8462-4');
+            var hdl = byObvCodes('2085-9');
+            var ldl = byObvCodes('2089-1');
+            var tcl = byObvCodes('2093-3');
 
+            var medications = smk[0];       
+           
           var p = defaultPatient();
           p.birthdate = patient.birthDate;
           p.gender = gender;
           p.fname = fname;
           p.lname = lname;
-          p.age = getAge(p.birthdate);
+            p.age = getAge(p.birthdate);
+
+            if (typeof medications != 'undefined') {
+
+                rxNormCodes = getRxNormCodes(meds);
+
+                var rxNorm = $.getJSON('https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json', 'rxcui=153666', function (data, status) {
+
+                    console.log(data);
+
+                    var items = data.items.map(function (item) {
+                        return item.key + ': ' + item.value;
+                    
+                });
+                    
+
+                p.meds = JSON.stringify(rxNorm);
+              //p.meds = getRxNormCodes(meds)[0];
+            } else {
+                p.meds = 'medications undefined';
+            }
+
 
             if (typeof smk != 'undefined') {
                 p.smk = getSmokingStatus(smk[0]);
@@ -112,8 +166,11 @@
 
           ret.resolve(p);
         });
+
       } else {
-        onError();
+
+          onError();
+
       }
     }
 
@@ -135,10 +192,23 @@
       hdl: {value: '' },
       tcl: {value: '' },
       smk: {value: '' },
-      tgl: {value: '' },
+      tgl: { value: '' },
+      meds: { value: '' },
     };
-  }
+    }
+    
+    function getRxNormCodes(medications) {
+        
+        var rxNormCodes = [];
 
+        for (i = 0; i < Object.keys(medications).length; i++) {
+            var code = medications[i].medicationCodeableConcept.coding[0].code
+            rxNormCodes.push(code);
+        }
+        
+        return rxNormCodes;
+    }
+    
   function getBloodPressureValue(BPObservations, typeOfPressure) {
     var formattedBPObservations = [];
     BPObservations.forEach(function(observation){
@@ -202,7 +272,8 @@
     $('#hdl').html(p.hdl);
     $('#tcl').html(p.tcl);
     $('#smk').html(p.smk);
-    $('#tgl').html(p.tgl);
+      $('#tgl').html(p.tgl);
+      $('#meds').html(p.meds);
   };
 
 })(window);
