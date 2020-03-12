@@ -125,7 +125,7 @@
             p.age = getAge(p.birthdate);
 
             if (typeof medications != 'undefined') {
-
+                /*
                 rxNormCodes = getRxNormCodes(meds);
 
                 var rxNorm = $.getJSON('https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json', 'rxcui=153666', function (data, status) {
@@ -137,9 +137,9 @@
                     
                 });
                     
-
-                p.meds = JSON.stringify(rxNorm);
-              //p.meds = getRxNormCodes(meds)[0];
+                    */
+               // p.meds = JSON.stringify(rxNorm);
+              p.meds = getRxNormCodes(meds)[0];
             } else {
                 p.meds = 'medications undefined';
             }
