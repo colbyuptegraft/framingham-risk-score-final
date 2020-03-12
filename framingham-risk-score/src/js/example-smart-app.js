@@ -125,21 +125,14 @@
             p.age = getAge(p.birthdate);
 
             if (typeof medications != 'undefined') {
-                /*
+                
                 rxNormCodes = getRxNormCodes(meds);
 
-                var rxNorm = $.getJSON('https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json', 'rxcui=153666', function (data, status) {
-
-                    console.log(data);
-
-                    var items = data.items.map(function (item) {
-                        return item.key + ': ' + item.value;
+                var rxNorm = httpGet("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=153666");
                     
-                });
                     
-                    */
-               // p.meds = JSON.stringify(rxNorm);
-              p.meds = getRxNormCodes(meds)[0];
+               p.meds = JSON.stringify(rxNorm);
+              //p.meds = getRxNormCodes(meds)[0];
             } else {
                 p.meds = 'medications undefined';
             }
@@ -256,6 +249,13 @@
         } else {
             return undefined;
         }
+    }
+
+    function httpGet(theUrl) {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.open("GET", theUrl, false); // false for synchronous request
+        xmlHttp.send(null);
+        return JSON.parse(xmlHttp.responseText);
     }
 
   window.drawVisualization = function(p) {
