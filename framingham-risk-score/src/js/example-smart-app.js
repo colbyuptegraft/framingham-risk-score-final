@@ -129,9 +129,11 @@
                 rxNormCodes = getRxNormCodes(meds);
 
                 var rxNorm = httpGet("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=153666");
+
+                var medClass = rxNorm.rxclassDrugInfoList.rxclassDrugInfo[0].rxclassMinConceptItem.className;
                     
-                    
-               p.meds = JSON.stringify(rxNorm);
+                p.meds = medClass;   
+               //p.meds = JSON.stringify(rxNorm);
               //p.meds = getRxNormCodes(meds)[0];
             } else {
                 p.meds = 'medications undefined';
