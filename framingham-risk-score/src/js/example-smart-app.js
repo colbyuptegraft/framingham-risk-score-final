@@ -30,6 +30,9 @@
       var ageSmk_women = -2.996945;
       var con_women = 146.5933061;
 
+    // Other variables
+      var rxClassBase = "https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=";
+      
     function onReady(smart)  {
       if (smart.hasOwnProperty('patient')) {
         var patient = smart.patient;
@@ -126,15 +129,39 @@
 
             if (typeof medications != 'undefined') {
                 
-                rxNormCodes = getRxNormCodes(meds);
+                rxNormCuis = getRxCuis(meds);
+                
+                var medClassCheck = "antihypertensive agents";
+                var medClassCheckArray = [];
 
-                var rxNorm = httpGet("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=153666");
+                for (i = 0; i < rxNormCuis.length; i++) {
 
-                var medClass = rxNorm.rxclassDrugInfoList.rxclassDrugInfo[0].rxclassMinConceptItem.className;
+                    var rxGetString = JSON.stringify(httpGet(rxClassBase.concat(rxNormCuis[i]))).toLowerCase();
+                    var isBpMed = rxGetString.includes(medClassCheck);
+                    medClassCheckArray.push(isBpMed);
+                }
+
+                var onBpMeds = medClassCheckArray.includes(true);
+
+                /*
+                var medClassCheck = "antihypertensive agents";
+                var rxGetString = JSON.stringify(httpGet(rxClassBase.concat(rxNormCuis[0]))).toLowerCase();
+                var isBpMed = rxGetString.includes(medClassCheck);
+                var medClassCheckArray = [true, false];
+                medClassCheckArray.push(isBpMed);
+                var onBpMeds = medClassCheckArray.includes(true);
+                */
+               // var rxNorm = httpGet("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=149");
+
+               // var rxNorm = httpGet(rxClassBase.concat(rxNormCuis[0]));
+
+               // var medClass = rxNorm.rxclassDrugInfoList.rxclassDrugInfo[0].rxclassMinConceptItem.className;
                     
-                p.meds = medClass;   
-               //p.meds = JSON.stringify(rxNorm);
-              //p.meds = getRxNormCodes(meds)[0];
+              //p.meds = medClass.toLowerCase();    
+              //p.meds = JSON.stringify(rxNorm);
+                //p.meds = getRxNormCodes(meds)[0];
+               p.meds = onBpMeds.toString();
+              // p.meds = onBloodPressureMeds(rxNormCuis).toString();
             } else {
                 p.meds = 'medications undefined';
             }
@@ -192,18 +219,34 @@
     };
     }
     
-    function getRxNormCodes(medications) {
+    function getRxCuis(medications) {
         
-        var rxNormCodes = [];
+        var rxCuis = [];
 
         for (i = 0; i < Object.keys(medications).length; i++) {
             var code = medications[i].medicationCodeableConcept.coding[0].code
-            rxNormCodes.push(code);
+            rxCuis.push(code);
         }
         
-        return rxNormCodes;
+        return rxCuis;
     }
-    
+/*
+    function onBloodPressureMeds(rxNormCuis) {
+
+        var medClassCheck = "antihypertensive agents";
+        var medClassCheckArray = [];
+
+        for (i = 0; i < rxNormCuis.length; i++) {
+
+            var rxGetString = JSON.stringify(httpGet(rxClassBase.concat(rxNormCuis[i]))).toLowerCase();
+            var isBpMed = rxGetString.includes(medClassCheck);
+            medClassCheckArray.push(isBpMed);
+        }
+
+        var onBpMeds = medClassCheckArray.includes(true);
+        return onBpMeds;
+    }
+ */
   function getBloodPressureValue(BPObservations, typeOfPressure) {
     var formattedBPObservations = [];
     BPObservations.forEach(function(observation){
@@ -260,6 +303,7 @@
         return JSON.parse(xmlHttp.responseText);
     }
 
+   
   window.drawVisualization = function(p) {
     $('#holder').show();
     $('#loading').hide();
