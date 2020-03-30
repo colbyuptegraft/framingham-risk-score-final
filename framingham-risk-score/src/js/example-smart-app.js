@@ -72,36 +72,15 @@
                   status: "completed"
                   //code: 'http://www.nlm.nih.gov/research/umls/rxnorm|153666' // "irbesartan 150 MG Oral Tablet [Avapro]"
               }
-              
-              
+                            
           });
-                  /*
-          $.when(pt, meds).done(function (meds) {
-              var byCodes = smart.byCodes(meds, 'code');
-
-              var medications = byCodes('153666');
-
-            
-              if (typeof medications != 'undefined') {
-                  p.meds = JSON.stringify(medications);
-              } else {
-                  p.meds = 'medications undefined';
-              }
-              
-               
-
-          });
-
-*/
 
         $.when(pt, obv, meds).fail(onError);
 
-
         $.when(pt, obv, meds).done(function(patient, obv, meds) {
-            var byObvCodes = smart.byCodes(obv, 'code');
-            var byMedCodes = smart.byCodes(meds, 'code');
-          var gender = patient.gender;
 
+          var byObvCodes = smart.byCodes(obv, 'code');            
+          var gender = patient.gender;
           var fname = '';
           var lname = '';
 
@@ -112,8 +91,10 @@
 
             var tgl = byObvCodes('2571-8', '3043-7', '3049-4');
             var smk = byObvCodes('72166-2', '81229-7', '11366-2', '11367-0', '39240-7');
-            var systolicbp = getBloodPressureValue(byObvCodes('55284-4'),'8480-6');
-            var diastolicbp = getBloodPressureValue(byObvCodes('55284-4'),'8462-4');
+            var sbp_formatted = getBloodPressureValueAndUnit(byObvCodes('55284-4'),'8480-6');
+            var dbp_formatted = getBloodPressureValueAndUnit(byObvCodes('55284-4'), '8462-4');
+            var sbp = getBloodPressureValue(byObvCodes('55284-4'), '8480-6');
+            var dbp = getBloodPressureValue(byObvCodes('55284-4'), '8462-4');
             var hdl = byObvCodes('2085-9');
             var ldl = byObvCodes('2089-1');
             var tcl = byObvCodes('2093-3');
@@ -125,7 +106,9 @@
           p.gender = gender;
           p.fname = fname;
           p.lname = lname;
-            p.age = getAge(p.birthdate);
+          p.age = getAge(p.birthdate);
+
+            var onBpMeds;
 
             if (typeof medications != 'undefined') {
                 
@@ -141,7 +124,11 @@
                     medClassCheckArray.push(isBpMed);
                 }
 
-                var onBpMeds = medClassCheckArray.includes(true);
+                if (medClassCheckArray.includes(true)) {
+                    onBpMeds = 1;
+                } else {
+                    onBpMeds = 0;
+                }                
 
                 /*
                 var medClassCheck = "antihypertensive agents";
@@ -159,7 +146,7 @@
                     
               //p.meds = medClass.toLowerCase();    
               //p.meds = JSON.stringify(rxNorm);
-                //p.meds = getRxNormCodes(meds)[0];
+              //p.meds = getRxNormCodes(meds)[0];
                p.meds = onBpMeds.toString();
               // p.meds = onBloodPressureMeds(rxNormCuis).toString();
             } else {
@@ -173,18 +160,43 @@
                 p.smk = 'smk undefined';
             }
           
-          if (typeof systolicbp != 'undefined')  {
-            p.systolicbp = systolicbp;
-          }
+            if (typeof sbp_formatted != 'undefined')  {
+                p.sbp = sbp_formatted;
+            }
 
-          if (typeof diastolicbp != 'undefined') {
-            p.diastolicbp = diastolicbp;
-          }
+            if (typeof dbp_formatted != 'undefined') {
+                p.dbp = dbp_formatted;
+            }
 
           p.hdl = getQuantityValueAndUnit(hdl[0]);
           p.ldl = getQuantityValueAndUnit(ldl[0]);
           p.tcl = getQuantityValueAndUnit(tcl[0]);
           p.tgl = getQuantityValueAndUnit(tgl[0]);
+
+          // Risk Calculation
+            var risk;
+
+            if (gender == 'female') {
+
+                risk = age_women * ln(p.age) +
+                    tcl_women * ln(getQuantityValue(tcl[0])) +
+                    hdl_women * ln(getQuantityValue(hdl[0])) +
+                    sbp_women * ln(sbp) +
+                    bpTx_women * onBpMeds +
+                    smk_women;
+
+            } else {
+
+                risk = age_men * ln(p.age) +
+                    tcl_men * ln(getQuantityValue(tcl[0])) +
+                    hdl_men * ln(getQuantityValue(hdl[0])) +
+                    sbp_men * ln(sbp) +
+                    bpTx_men * onBpMeds +
+                    smk_men;
+
+            }
+
+            p.risk = risk;
 
           ret.resolve(p);
         });
@@ -208,15 +220,20 @@
       gender: {value: ''},
       birthdate: {value: '' },
       age: {value: ''},
-      systolicbp: {value: ''},
-      diastolicbp: {value: ''},
+      sbp: {value: ''},
+      dbp: {value: ''},
       ldl: {value: ''},
       hdl: {value: '' },
       tcl: {value: '' },
       smk: {value: '' },
-      tgl: { value: '' },
-      meds: { value: '' },
+      tgl: {value: '' },
+      meds: {value: '' },
+      risk: {value: '' },
     };
+    }
+
+    function ln(num) {
+        return Math.log(num);
     }
     
     function getRxCuis(medications) {
@@ -247,7 +264,7 @@
         return onBpMeds;
     }
  */
-  function getBloodPressureValue(BPObservations, typeOfPressure) {
+  function getBloodPressureValueAndUnit(BPObservations, typeOfPressure) {
     var formattedBPObservations = [];
     BPObservations.forEach(function(observation){
       var BP = observation.component.find(function(component){
@@ -263,6 +280,22 @@
     return getQuantityValueAndUnit(formattedBPObservations[0]);
   }
 
+    function getBloodPressureValue(BPObservations, typeOfPressure) {
+        var formattedBPObservations = [];
+        BPObservations.forEach(function (observation) {
+            var BP = observation.component.find(function (component) {
+                return component.code.coding.find(function (coding) {
+                    return coding.code == typeOfPressure;
+                });
+            });
+            if (BP) {
+                observation.valueQuantity = BP.valueQuantity;
+                formattedBPObservations.push(observation);
+            }
+        });
+        return getQuantityValue(formattedBPObservations[0]);
+    }
+
   function getQuantityValueAndUnit(ob) {
     if (typeof ob != 'undefined' &&
         typeof ob.valueQuantity != 'undefined' &&
@@ -272,6 +305,16 @@
     } else {
       return undefined;
     }
+    }
+
+    function getQuantityValue(ob) {
+        if (typeof ob != 'undefined' &&
+            typeof ob.valueQuantity != 'undefined' &&
+            typeof ob.valueQuantity.value != 'undefined') {
+            return ob.valueQuantity.value;
+        } else {
+            return undefined;
+        }
     }
 
     function getAge(dateString) { // birthday is a string
@@ -302,7 +345,6 @@
         xmlHttp.send(null);
         return JSON.parse(xmlHttp.responseText);
     }
-
    
   window.drawVisualization = function(p) {
     $('#holder').show();
@@ -312,14 +354,15 @@
     $('#gender').html(p.gender);
     $('#birthdate').html(p.birthdate);
     $('#age').html(p.age);
-    $('#systolicbp').html(p.systolicbp);
-    $('#diastolicbp').html(p.diastolicbp);
+    $('#sbp').html(p.sbp_formatted);
+    $('#dbp').html(p.dbp_formatted);
     $('#ldl').html(p.ldl);
     $('#hdl').html(p.hdl);
     $('#tcl').html(p.tcl);
     $('#smk').html(p.smk);
-      $('#tgl').html(p.tgl);
-      $('#meds').html(p.meds);
+    $('#tgl').html(p.tgl);
+    $('#meds').html(p.meds);
+    $('#risk').html(p.risk);
   };
 
 })(window);
