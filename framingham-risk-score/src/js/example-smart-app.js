@@ -7,7 +7,7 @@
       ret.reject();
       }
 
-    // Coefficients for Men
+    // Framingham Coefficients for Men
       var age_men = 52.00961;
       var tcl_men = 20.014077;
       var hdl_men = -0.905964;
@@ -19,7 +19,7 @@
       var age2_men = -2.93323;
       var con_men = 172.300168;
 
-    // Coefficients for Women
+    // Framingham Coefficients for Women
       var age_women = 31.764001;
       var tcl_women = 22.465206;
       var hdl_women = -1.187731;
@@ -31,7 +31,7 @@
       var con_women = 146.5933061;
 
     // Other variables
-      var rxClassBase = "https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=";
+      var rxClassBase = "https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui="; // Base URL for RxClass API
       
     function onReady(smart)  {
       if (smart.hasOwnProperty('patient')) {
@@ -47,6 +47,7 @@
                               'http://loinc.org|2085-9', // HDL
                               'http://loinc.org|2089-1', // LDL
                               'http://loinc.org|13457-7', // LDL
+                              'http://loinc.org|18262-6', // LDL
                               'http://loinc.org|2093-3', // Total Cholesterol
                               'http://loinc.org|55284-4', // Blood pressure systolic & diastolic
                               'http://loinc.org|30525-0', // Age
@@ -85,7 +86,6 @@
               var fname = '';
               var lname = '';
 
-
               if (typeof patient.name[0] !== 'undefined') {
                   fname = patient.name[0].given.join(' ');
                   lname = patient.name[0].family.join(' ');
@@ -97,21 +97,22 @@
               var dbp_formatted = getBloodPressureValueAndUnit(byObvCodes('55284-4'), '8462-4');
               var sbp = getBloodPressureValue(byObvCodes('55284-4'), '8480-6');
               var hdl = byObvCodes('2085-9');
-              var ldl = byObvCodes('2089-1', '13457-7');
+              var ldl = byObvCodes('2089-1', '13457-7', '18262-6');
               var tcl = byObvCodes('2093-3');
-           
+
+              // Set default patient object
               var p = defaultPatient();
 
+              // Patient demographics
               p.birthdate = patient.birthDate;
               p.gender = gender;
               p.fname = fname;
               p.lname = lname;
               p.age = getAge(p.birthdate);
 
-
+              // Determine if patient is on blood pressure medications (medications dispensed)
               var onBpMeds;
-
-              if (typeof meds != 'undefined') {
+              if (typeof meds[0] != 'undefined') {
                 
                   rxNormCuis = getRxCuis(meds);                
 
@@ -126,21 +127,19 @@
 
                   if (medClassCheckArray.includes(true)) {
                       onBpMeds = 1;
+                      p.meds = 'Yes';
                   } else {
                       onBpMeds = 0;
-                  }
-               
-                  p.meds = onBpMeds.toString();
+                      p.meds = 'No';
+                  }                 
             
               } else {
-
-                  p.meds = 'medications undefined';
-
+                  p.meds = 'Unk';
               }
 
+              // Determine patient's smoking status
               var smk_status;
-
-              if (typeof smk != 'undefined') {
+              if (typeof smk[0] != 'undefined') {
 
                   if (getSmokingStatus(smk[0]).toLowerCase().includes("current")) {
                       smk_status = 1;
@@ -152,32 +151,55 @@
                   
               } else {
                   smk_status = 0;
-                  p.smk = 'smk undefined';
+                  p.smk = 'Unk';
               }
-          
+
+              // Systolic blood pressure
               if (typeof sbp_formatted != 'undefined') {
                   p.sbp = sbp_formatted;
               } else {
-                  p.sbp = 'Systolic BP not found';
+                  p.sbp = 'Unk';
               }
 
+              // Diastolic blood pressure
               if (typeof dbp_formatted != 'undefined') {
                   p.dbp = dbp_formatted;
               } else {
-                  p.sbp = 'Diastolic BP not found';
+                  p.dbp = 'Unk';
               }
 
-              p.hdl = getQuantityValueAndUnit(hdl[0]);
-              p.ldl = getQuantityValueAndUnit(ldl[0]);
-              p.tcl = getQuantityValueAndUnit(tcl[0]);
-              p.tgl = getQuantityValueAndUnit(tgl[0]);
+              // HDL cholesterol
+              if (typeof hdl[0] != 'undefined') {
+                  p.hdl = getQuantityValueAndUnit(hdl[0]);
+              } else {
+                  p.hdl = 'Unk';
+              }
 
-          // Risk Calculation
+              // LDL cholesterol
+              if (typeof ldl[0] != 'undefined') {
+                  p.ldl = getQuantityValueAndUnit(ldl[0]);
+              } else {
+                  p.ldl = 'Unk';
+              }
+
+              // Total cholesterol
+              if (typeof tcl[0] != 'undefined') {
+                  p.tcl = getQuantityValueAndUnit(tcl[0]);
+              } else {
+                  p.tcl = 'Unk';
+              }
+
+              // Triglycerides
+              if (typeof tgl[0] != 'undefined') {
+                  p.tgl = getQuantityValueAndUnit(tgl[0]);
+              } else {
+                  p.tgl = 'Unk';
+              }            
+
+          // Risk Calculation (https://www.mdcalc.com/framingham-risk-score-hard-coronary-heart-disease#evidence)
 
               var coef;
-
               var risk;
-
 
               if (typeof p.age == 'number' &&
                   typeof getQuantityValue(tcl[0]) == 'number' &&
@@ -201,7 +223,6 @@
                               con_women;
 
                       } else {
-
 
                           coef = age_women * ln(p.age) +
                               tcl_women * ln(getQuantityValue(tcl[0])) +
@@ -271,6 +292,7 @@
       return ret.promise();
     };
 
+    // Default patient parameters
     function defaultPatient() {
 
         return {
@@ -291,11 +313,12 @@
         };
     }
 
-
+    // Shorter natural log
     function ln(num) {
         return Math.log(num);
     }
-    
+
+    // Get all RxNorm CUIs (Concept Unique Identifier) from each medication object
     function getRxCuis(medications) {
                 
         var rxCuis = [];
@@ -307,6 +330,7 @@
         return rxCuis;
     }
 
+    // Get blood pressure observation; split into diastolic & systolic
     function getBloodPressureValueAndUnit(BPObservations, typeOfPressure) {
         var formattedBPObservations = [];
         BPObservations.forEach(function (observation) {
@@ -324,12 +348,10 @@
         return getQuantityValueAndUnit(formattedBPObservations[0]);
     }
 
+    // Get only the blood pressure numerical value
     function getBloodPressureValue(BPObservations, typeOfPressure) {
-
         var formattedBPObservations = [];
-
         BPObservations.forEach(function (observation) {
-
             var BP = observation.component.find(function (component) {
                 return component.code.coding.find(function (coding) {
                     return coding.code == typeOfPressure;
@@ -344,6 +366,7 @@
         return getQuantityValue(formattedBPObservations[0]);
     }
 
+    // Get numerical value and unit of observations 
     function getQuantityValueAndUnit(ob) {
 
         if (typeof ob != 'undefined' &&
@@ -358,6 +381,7 @@
         }
     }
 
+    // Get only numerical value of observations
     function getQuantityValue(ob) {
 
         if (typeof ob != 'undefined' &&
@@ -371,6 +395,7 @@
         }
     }
 
+    // Calculate patient age based on birthdate
     function getAge(dateString) { // birthday is a string
 
         var today = new Date();
@@ -383,6 +408,7 @@
         return age;
     }
 
+    // Get smoking status
     function getSmokingStatus(ob) {
         if (typeof ob != 'undefined' &&
             typeof ob.valueCodeableConcept != 'undefined' &&
@@ -396,6 +422,7 @@
         }
     }
 
+    // HTTP get request and format return as JSON object
     function httpGet(theUrl) {
         var xmlHttp = new XMLHttpRequest();
         xmlHttp.open("GET", theUrl, false); // false for synchronous request
@@ -403,9 +430,9 @@
 
         return JSON.parse(xmlHttp.responseText);
     }
-   
-    window.drawVisualization = function (p) {
 
+    // Draw corresponding HTML on index page
+    window.drawVisualization = function (p) {
         $('#holder').show();
         $('#loading').hide();
         $('#fname').html(p.fname);
