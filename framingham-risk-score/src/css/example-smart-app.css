@@ -11,6 +11,14 @@ body {
   display: none;
 }
 
+#risk {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 100px;
+    color: red;
+}
+
 .spinner {
   margin: 100px auto 0;
   width: 70px;
@@ -21,7 +29,6 @@ body {
   width: 18px;
   height: 18px;
   background-color: #000;
-
   border-radius: 100%;
   display: inline-block;
   -webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;

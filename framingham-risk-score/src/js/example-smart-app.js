@@ -33,15 +33,16 @@
     // Other variables
       var rxClassBase = "https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui="; // Base URL for RxClass API
       
-    function onReady(smart)  {
+      function onReady(smart) {
+
       if (smart.hasOwnProperty('patient')) {
         var patient = smart.patient;
         var pt = patient.read();
         var obv = smart.patient.api.fetchAll({
-                    type: 'Observation',
-                    query: {
-                      code: {
-                            $or: [
+            type: 'Observation',
+            query: {
+                code: {
+                    $or: [
                               'http://loinc.org|8462-4', // DBP
                               'http://loinc.org|8480-6', // SBP
                               'http://loinc.org|2085-9', // HDL
@@ -62,8 +63,7 @@
                               'http://loinc.org|2571-8', // Triglycerides (mass/volume in Serum or plasma)
                               'http://loinc.org|3043-7', // Triglycerides (mass/volume in Blood)
                               'http://loinc.org|3049-4', // Triglycerides (mass/volume in serum or plasma) - Deprecated
-                            ] 
-                          
+                            ]                          
                       }
                     }
         });
