@@ -5,10 +5,7 @@
     "\\framingham-risk-score\\lib\\css",
     "\\framingham-risk-score\\lib\\js",
     "\\framingham-risk-score\\src",
-    "\\framingham-risk-score\\src\\css",
-    "\\framingham-risk-score\\src\\images",
-    "\\framingham-risk-score\\src\\js",
-    "\\images"
+    "\\framingham-risk-score\\src\\js"
   ],
   "SelectedNode": "\\framingham-risk-score\\src\\js\\example-smart-app.js",
   "PreviewInSolutionExplorer": false

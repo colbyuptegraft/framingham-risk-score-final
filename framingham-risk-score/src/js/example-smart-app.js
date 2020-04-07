@@ -272,7 +272,6 @@
 
                         }
 
-
                         p.risk = risk.toFixed(2) + '%';
 
                     } else {
@@ -432,7 +431,7 @@
         return JSON.parse(xmlHttp.responseText);
     }
 
-    // Draw corresponding HTML on index page
+    // Draw, show, or hide corresponding HTML on index page
     window.drawVisualization = function (p) {
         $('#holder').show();
         $('#loading').hide();
