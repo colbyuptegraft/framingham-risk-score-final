@@ -1,4 +1,4 @@
-(function(window){
+(function (window) {
   window.extractData = function() {
     var ret = $.Deferred();
 
