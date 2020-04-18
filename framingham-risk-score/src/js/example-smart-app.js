@@ -91,6 +91,7 @@
                         lname = patient.name[0].family.join(' ');
                     }
 
+                    // Create arrays of JSON objects
                     var tgl = byObvCodes('2571-8', '3043-7', '3049-4');
                     var smk = byObvCodes('72166-2', '81229-7', '11366-2', '11367-0', '39240-7');
                     var sbp_formatted = getBloodPressureValueAndUnit(byObvCodes('55284-4'), '8480-6');
@@ -134,6 +135,7 @@
                         }
             
                     } else {
+                        onBpMeds = 0;
                         p.meds = 'Unk';
                     }
 
@@ -324,7 +326,7 @@
         var rxCuis = [];
 
         for (i = 0; i < Object.keys(medications).length; i++) {
-            var code = medications[i].medicationCodeableConcept.coding[0].code
+            var code = medications[i].medicationCodeableConcept.coding[0].code;
             rxCuis.push(code);
         }                
         return rxCuis;
